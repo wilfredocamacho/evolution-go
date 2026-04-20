@@ -798,27 +798,35 @@ type PresenceSender interface {
 }
 
 // handlePresenceTick fetches the instance state and sends PresenceAvailable when AlwaysOnline
-// is enabled. Returns shouldStop=true when the goroutine should exit (instance gone or flag off).
+// is enabled. Returns shouldStop=true when the goroutine should exit (instance definitively gone
+// or flag disabled). Transient DB/network errors return shouldStop=false so the goroutine retries
+// on the next tick instead of dying permanently.
 func handlePresenceTick(ctx context.Context, userID string, repo instance_repository.InstanceRepository, sender PresenceSender) (shouldStop bool, err error) {
 	instance, err := repo.GetInstanceByID(userID)
 	if err != nil {
-		return true, err
+		if errors.Is(err, instance_repository.ErrInstanceNotFound) {
+			return true, nil
+		}
+		// Transient error — log at call site and retry next tick.
+		return false, err
 	}
 	if !instance.AlwaysOnline {
 		return true, nil
 	}
-	err = sender.SendPresence(ctx, types.PresenceAvailable)
-	return false, err
+	if err := sender.SendPresence(ctx, types.PresenceAvailable); err != nil {
+		return false, err
+	}
+	return false, nil
 }
 
-func schedulePresenceUpdates(mycli *MyClient) {
+func schedulePresenceUpdates(ctx context.Context, mycli *MyClient) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			shouldStop, err := handlePresenceTick(context.Background(), mycli.userID, mycli.instanceRepository, mycli.WAClient)
+			shouldStop, err := handlePresenceTick(ctx, mycli.userID, mycli.instanceRepository, mycli.WAClient)
 			if err != nil {
 				mycli.loggerWrapper.GetLogger(mycli.userID).LogError("[%s] Presence update error: %v", mycli.userID, err)
 			}
@@ -826,10 +834,16 @@ func schedulePresenceUpdates(mycli *MyClient) {
 				mycli.loggerWrapper.GetLogger(mycli.userID).LogInfo("[%s] Stopping presence updates (AlwaysOnline disabled or instance not found)", mycli.userID)
 				return
 			}
-			mycli.loggerWrapper.GetLogger(mycli.userID).LogInfo("[%s] Marked self as available (AlwaysOnline)", mycli.userID)
+			if err == nil {
+				mycli.loggerWrapper.GetLogger(mycli.userID).LogInfo("[%s] Marked self as available (AlwaysOnline)", mycli.userID)
+			}
 
 		case <-mycli.killChannel[mycli.userID]:
 			mycli.loggerWrapper.GetLogger(mycli.userID).LogInfo("[%s] Received kill signal, stopping presence updates", mycli.userID)
+			return
+
+		case <-ctx.Done():
+			mycli.loggerWrapper.GetLogger(mycli.userID).LogInfo("[%s] Context cancelled, stopping presence updates", mycli.userID)
 			return
 		}
 	}
@@ -897,7 +911,7 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 			postMap["data"] = dataMap
 
 			if mycli.Instance.AlwaysOnline {
-				go schedulePresenceUpdates(mycli)
+				go schedulePresenceUpdates(context.Background(), mycli)
 			}
 
 			err := mycli.WAClient.SendPresence(context.Background(), types.PresenceAvailable)
@@ -2603,7 +2617,7 @@ func (w whatsmeowService) UpdateInstanceAdvancedSettings(instanceId string) erro
 
 	if !wasAlwaysOnline && instance.AlwaysOnline {
 		if myClient.WAClient != nil && myClient.WAClient.IsConnected() {
-			go schedulePresenceUpdates(myClient)
+			go schedulePresenceUpdates(context.Background(), myClient)
 			w.loggerWrapper.GetLogger(instanceId).LogInfo("[%s] AlwaysOnline enabled, started presence updates goroutine", instanceId)
 		}
 	}
