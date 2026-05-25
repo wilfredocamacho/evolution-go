@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/EvolutionAPI/evolution-go/pkg/webhook/model"
 	"github.com/EvolutionAPI/evolution-go/pkg/webhook/repository"
@@ -28,6 +29,7 @@ type CreateWebhookDTO struct {
 	Expire          *int     `json:"expire"`
 	ListeningFromMe *bool    `json:"listeningFromMe"`
 	StopBotFromMe   *bool    `json:"stopBotFromMe"`
+	IsTrusted       *bool    `json:"isTrusted"`
 	IgnoreJids      []string `json:"ignoreJids"`
 }
 
@@ -72,6 +74,11 @@ func (s *WebhookService) Create(instanceID string, data CreateWebhookDTO) (*webh
 		stopBotFromMe = *data.StopBotFromMe
 	}
 
+	isTrusted := false
+	if data.IsTrusted != nil {
+		isTrusted = *data.IsTrusted
+	}
+
 	webhook := &webhook_model.Webhook{
 		InstanceID:      instanceID,
 		Enabled:         enabled,
@@ -86,6 +93,7 @@ func (s *WebhookService) Create(instanceID string, data CreateWebhookDTO) (*webh
 		Expire:          expire,
 		ListeningFromMe: listeningFromMe,
 		StopBotFromMe:   stopBotFromMe,
+		IsTrusted:       isTrusted,
 		IgnoreJids:      datatypes.JSON(ignoreJidsBytes),
 	}
 
@@ -163,6 +171,9 @@ func (s *WebhookService) Update(id string, data UpdateWebhookDTO) (*webhook_mode
 	if data.StopBotFromMe != nil {
 		webhook.StopBotFromMe = *data.StopBotFromMe
 	}
+	if data.IsTrusted != nil {
+		webhook.IsTrusted = *data.IsTrusted
+	}
 	if data.IgnoreJids != nil {
 		ignoreJidsBytes, _ := json.Marshal(data.IgnoreJids)
 		webhook.IgnoreJids = datatypes.JSON(ignoreJidsBytes)
@@ -178,9 +189,9 @@ func (s *WebhookService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
 
-func (s *WebhookService) ChangeStatus(remoteJid string, status string) error {
+func (s *WebhookService) ChangeStatus(instanceId, remoteJid, status string) error {
 	if status == "closed" {
-		s.sessions.CloseSession(remoteJid)
+		s.sessions.CloseSessionByRemoteJid(remoteJid)
 	} else if status == "delete" {
 		s.sessions.DeleteSession(remoteJid)
 	} else {
@@ -214,8 +225,12 @@ func (s *WebhookService) validateTrigger(triggerType, triggerOperator, triggerVa
 			return errors.New("triggerValue is required for keyword trigger")
 		}
 		switch triggerOperator {
-		case "equals", "contains", "startsWith", "endsWith", "regex":
+		case "equals", "contains", "startsWith", "endsWith":
 			// valid
+		case "regex":
+			if _, err := regexp.Compile(triggerValue); err != nil {
+				return fmt.Errorf("invalid regex in triggerValue: %w", err)
+			}
 		case "":
 			return errors.New("triggerOperator is required for keyword trigger")
 		default:

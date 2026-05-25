@@ -114,7 +114,9 @@ func (h *WebhookHandler) ChangeStatus(ctx *gin.Context) {
 		return
 	}
 
-	err := h.service.ChangeStatus(data.RemoteJid, data.Status)
+	instanceID := ctx.GetString("instance")
+
+	err := h.service.ChangeStatus(instanceID, data.RemoteJid, data.Status)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

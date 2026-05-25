@@ -85,13 +85,13 @@ func (l *ChatbotListener) processWebhook(w webhook_model.Webhook, instance *inst
 		l.sessions.Touch(w.ID, remoteJid)
 
 		if w.StopBotFromMe && fromMe {
-			l.sessions.PauseSession(w.ID, remoteJid)
-			l.logger.GetLogger(instance.Id).LogInfo("[%s] Session paused by StopBotFromMe for %s", instance.Id, remoteJid)
+			l.sessions.CloseSession(w.ID, remoteJid)
+			l.logger.GetLogger(instance.Id).LogInfo("[%s] Session closed by StopBotFromMe for %s", instance.Id, remoteJid)
 			return
 		}
 
 		if w.KeywordFinish != "" && strings.EqualFold(strings.TrimSpace(content), w.KeywordFinish) {
-			l.sessions.CloseSession(remoteJid)
+			l.sessions.CloseSession(w.ID, remoteJid)
 			l.logger.GetLogger(instance.Id).LogInfo("[%s] Session closed by keywordFinish for %s", instance.Id, remoteJid)
 			return
 		}
@@ -108,7 +108,7 @@ func (l *ChatbotListener) processWebhook(w webhook_model.Webhook, instance *inst
 
 		s := l.sessions.CreateOrGet(w.ID, remoteJid, pushName, instance.Id, w.Expire)
 		if w.StopBotFromMe && fromMe {
-			l.sessions.PauseSession(w.ID, remoteJid)
+			l.sessions.CloseSession(w.ID, remoteJid)
 			return
 		}
 
@@ -124,7 +124,10 @@ func (l *ChatbotListener) dispatchAndRespond(w *webhook_model.Webhook, instance 
 		"pushName":     pushName,
 		"instanceName": instance.Name,
 		"instanceId":   instance.Id,
-		"apiKey":       instance.Token,
+	}
+
+	if w.IsTrusted {
+		payload["apiKey"] = instance.Token
 	}
 
 	response, err := l.dispatcher.Dispatch(w, payload)

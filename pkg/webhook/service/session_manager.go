@@ -18,15 +18,15 @@ type Session struct {
 }
 
 type SessionManager struct {
-	mu       sync.RWMutex
-	sessions map[string]*Session
-	stopCh   chan struct{}
+	mu              sync.RWMutex
+	sessions        map[string]*Session
+	stopCh          chan struct{}
+	cleanupRunning  bool
 }
 
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
 		sessions: make(map[string]*Session),
-		stopCh:   make(chan struct{}),
 	}
 }
 
@@ -34,7 +34,11 @@ func (sm *SessionManager) Get(webhookID, remoteJid string) *Session {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	key := webhookID + ":" + remoteJid
-	return sm.sessions[key]
+	if s, exists := sm.sessions[key]; exists {
+		cpy := *s
+		return &cpy
+	}
+	return nil
 }
 
 func (sm *SessionManager) CreateOrGet(webhookID, remoteJid, pushName, instanceID string, expire int) *Session {
@@ -61,7 +65,16 @@ func (sm *SessionManager) CreateOrGet(webhookID, remoteJid, pushName, instanceID
 	return s
 }
 
-func (sm *SessionManager) CloseSession(remoteJid string) {
+func (sm *SessionManager) CloseSession(webhookID, remoteJid string) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	key := webhookID + ":" + remoteJid
+	if s, exists := sm.sessions[key]; exists {
+		s.Status = "closed"
+	}
+}
+
+func (sm *SessionManager) CloseSessionByRemoteJid(remoteJid string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	for _, s := range sm.sessions {
@@ -76,7 +89,7 @@ func (sm *SessionManager) PauseSession(webhookID, remoteJid string) {
 	defer sm.mu.Unlock()
 	key := webhookID + ":" + remoteJid
 	if s, exists := sm.sessions[key]; exists {
-		s.Status = "paused"
+		s.Status = "closed"
 	}
 }
 
@@ -100,6 +113,18 @@ func (sm *SessionManager) Touch(webhookID, remoteJid string) {
 }
 
 func (sm *SessionManager) StartCleanup(defaultExpire time.Duration) {
+	sm.mu.Lock()
+	if sm.cleanupRunning {
+		sm.mu.Unlock()
+		return
+	}
+	sm.cleanupRunning = true
+	if sm.stopCh == nil {
+		sm.stopCh = make(chan struct{})
+	}
+	stopCh := sm.stopCh
+	sm.mu.Unlock()
+
 	go func() {
 		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
@@ -112,18 +137,18 @@ func (sm *SessionManager) StartCleanup(defaultExpire time.Duration) {
 						delete(sm.sessions, k)
 						continue
 					}
-					
+
 					expireDuration := defaultExpire
 					if s.Expire > 0 {
 						expireDuration = time.Duration(s.Expire) * time.Second
 					}
-					
+
 					if time.Since(s.LastActive) > expireDuration {
 						delete(sm.sessions, k)
 					}
 				}
 				sm.mu.Unlock()
-			case <-sm.stopCh:
+			case <-stopCh:
 				return
 			}
 		}
@@ -131,5 +156,11 @@ func (sm *SessionManager) StartCleanup(defaultExpire time.Duration) {
 }
 
 func (sm *SessionManager) StopCleanup() {
-	close(sm.stopCh)
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if sm.stopCh != nil {
+		close(sm.stopCh)
+		sm.stopCh = nil
+	}
+	sm.cleanupRunning = false
 }

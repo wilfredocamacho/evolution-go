@@ -21,7 +21,7 @@ func (r *WebhookRepository) FindByInstance(instanceID string) ([]webhook_model.W
 
 func (r *WebhookRepository) FindByID(id string) (*webhook_model.Webhook, error) {
 	var webhook webhook_model.Webhook
-	err := r.db.Where("id = ?", id).First(&webhook).Error
+	err := r.db.First(&webhook, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (r *WebhookRepository) Update(webhook *webhook_model.Webhook) error {
 }
 
 func (r *WebhookRepository) Delete(id string) error {
-	return r.db.Where("id = ?", id).Delete(&webhook_model.Webhook{}).Error
+	return r.db.Delete(&webhook_model.Webhook{}, id).Error
 }
 
 func (r *WebhookRepository) FindByInstanceAndEnabled(instanceID string) ([]webhook_model.Webhook, error) {

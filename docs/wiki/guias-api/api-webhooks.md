@@ -81,7 +81,7 @@ Uma vez com sessão aberta, **todas as mensagens seguintes** daquele número vã
 
 ### Criar Webhook
 
-`POST /webhook/create` — Requer `GlobalApiKey`
+`POST /webhook/create/:instanceId` — Requer `GlobalApiKey`
 
 **Request Body:**
 ```json
@@ -127,7 +127,7 @@ Uma vez com sessão aberta, **todas as mensagens seguintes** daquele número vã
 
 ### Listar Webhooks
 
-`GET /webhook/find` — Requer `GlobalApiKey`
+`GET /webhook/find/:instanceId` — Requer `GlobalApiKey`
 
 Query param: `instanceId` ou usa o token da instância autenticada.
 
@@ -255,7 +255,7 @@ Se a resposta for vazia, nada é enviado ao WhatsApp.
 
 **1. Crie um webhook no evolution-go:**
 ```bash
-curl -X POST https://seu-server.com/webhook/create \
+curl -X POST https://seu-server.com/webhook/create/instance-uuid \
   -H "apikey: SUA-GLOBAL-API-KEY" \
   -H "Content-Type: application/json" \
   -d '{
