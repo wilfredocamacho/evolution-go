@@ -3,8 +3,8 @@ name: trellis-check
 description: |
   Code quality check expert. Reviews changes against Trellis specs, fixes issues directly, and verifies quality gates.
 tools: search_context, Read, Write, Edit, Bash, Glob, Grep
-model: cliproxy/gpt-5.5
-thinking: low
+model: antigravity-acp/agy-gemini-3-1-pro-high
+thinking: high
 ---
 
 ## Required: Run search_context First
