@@ -1,4 +1,16 @@
-FROM golang:1.25.0-alpine AS build
+FROM node:22-alpine AS frontend-build
+
+WORKDIR /build
+
+# Copiar dependências primeiro para cache
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+RUN cd frontend && npm ci
+
+# Copiar código e construir
+COPY frontend/ ./frontend/
+RUN cd frontend && npm run build
+
+FROM golang:1.25.0-alpine AS backend-build
 
 RUN apk update && apk add --no-cache git build-base libjpeg-turbo-dev libwebp-dev
 
@@ -25,9 +37,9 @@ RUN apk update && apk add --no-cache tzdata ffmpeg libjpeg-turbo libwebp
 
 WORKDIR /app
 
-COPY --from=build /build/server .
-COPY --from=build /build/manager/dist ./manager/dist
-COPY --from=build /build/VERSION ./VERSION
+COPY --from=backend-build /build/server .
+COPY --from=frontend-build /build/frontend/dist ./manager/dist
+COPY --from=backend-build /build/VERSION ./VERSION
 
 ENV TZ=America/Sao_Paulo
 
