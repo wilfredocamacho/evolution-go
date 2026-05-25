@@ -21,6 +21,7 @@ import (
 	send_handler "github.com/EvolutionAPI/evolution-go/pkg/sendMessage/handler"
 	server_handler "github.com/EvolutionAPI/evolution-go/pkg/server/handler"
 	user_handler "github.com/EvolutionAPI/evolution-go/pkg/user/handler"
+	webhook_handler "github.com/EvolutionAPI/evolution-go/pkg/webhook/handler"
 )
 
 type Routes struct {
@@ -38,6 +39,7 @@ type Routes struct {
 	newsletterHandler       newsletter_handler.NewsletterHandler
 	pollHandler             *poll_handler.PollHandler
 	serverHandler           server_handler.ServerHandler
+	webhookHandler          *webhook_handler.WebhookHandler
 }
 
 func (r *Routes) AssignRoutes(eng *gin.Engine) {
@@ -243,6 +245,24 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 		}
 	}
 
+	routes = eng.Group("/webhook")
+	{
+		routes.Use(r.authMiddleware.AuthAdmin)
+		{
+			routes.POST("/create/:instanceId", r.webhookHandler.Create)
+			routes.GET("/find/:instanceId", r.webhookHandler.Find)
+			routes.GET("/fetch/:webhookId", r.webhookHandler.Fetch)
+			routes.PUT("/update/:webhookId", r.webhookHandler.Update)
+			routes.DELETE("/delete/:webhookId", r.webhookHandler.Delete)
+		}
+	}
+	routes = eng.Group("/webhook")
+	{
+		routes.Use(r.authMiddleware.Auth)
+		{
+			routes.POST("/change-status", r.webhookHandler.ChangeStatus)
+		}
+	}
 }
 
 func NewRouter(
@@ -259,6 +279,7 @@ func NewRouter(
 	newsletterHandler newsletter_handler.NewsletterHandler,
 	pollHandler *poll_handler.PollHandler,
 	serverHandler server_handler.ServerHandler,
+	webhookHandler *webhook_handler.WebhookHandler,
 ) *Routes {
 	return &Routes{
 		authMiddleware:          authMiddleware,
@@ -275,5 +296,6 @@ func NewRouter(
 		newsletterHandler:       newsletterHandler,
 		pollHandler:             pollHandler,
 		serverHandler:           serverHandler,
+		webhookHandler:          webhookHandler,
 	}
 }
