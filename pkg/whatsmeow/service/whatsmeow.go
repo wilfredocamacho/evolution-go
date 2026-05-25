@@ -47,6 +47,7 @@ import (
 	poll_service "github.com/EvolutionAPI/evolution-go/pkg/poll/service"
 	storage_interfaces "github.com/EvolutionAPI/evolution-go/pkg/storage/interfaces"
 	"github.com/EvolutionAPI/evolution-go/pkg/utils"
+	webhook_service "github.com/EvolutionAPI/evolution-go/pkg/webhook/service"
 )
 
 type WhatsmeowService interface {
@@ -61,6 +62,7 @@ type WhatsmeowService interface {
 	UpdateInstanceSettings(instanceId string) error
 	UpdateInstanceAdvancedSettings(instanceId string) error
 	GetPollService() poll_service.PollService // NOVO: Acesso ao serviço de polls
+	SetChatbotListener(l webhook_service.MessageListener)
 }
 
 type clientVersion struct {
@@ -89,6 +91,7 @@ type whatsmeowService struct {
 	processedMessages  *cache.Cache
 	natsProducer       producer_interfaces.Producer
 	loggerWrapper      *logger_wrapper.LoggerManager
+	chatbotListener    webhook_service.MessageListener
 }
 
 type MyClient struct {
@@ -119,6 +122,7 @@ type MyClient struct {
 	processedMessages  *cache.Cache
 	natsProducer       producer_interfaces.Producer
 	loggerWrapper      *logger_wrapper.LoggerManager
+	chatbotListener    webhook_service.MessageListener
 	qrcodeCount        int
 }
 
@@ -147,6 +151,10 @@ type ProxyConfig struct {
 	Password string `json:"password"`
 	Port     string `json:"port"`
 	Username string `json:"username"`
+}
+
+func (w *whatsmeowService) SetChatbotListener(l webhook_service.MessageListener) {
+	w.chatbotListener = l
 }
 
 func (w whatsmeowService) ReconnectClient(instanceId string) error {
@@ -470,6 +478,7 @@ func (w whatsmeowService) StartClient(cd *ClientData) {
 		processedMessages:  w.processedMessages,
 		natsProducer:       w.natsProducer,
 		loggerWrapper:      w.loggerWrapper,
+		chatbotListener:    w.chatbotListener,
 		qrcodeCount:        0,
 	}
 
@@ -1974,6 +1983,13 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 		}
 	} else {
 		mycli.loggerWrapper.GetLogger(mycli.userID).LogWarn("[%s] ===== WEBHOOK SKIPPED ===== doWebhook=false", mycli.userID)
+	}
+
+	// Dispatch to chatbot listener for message events
+	if mycli.chatbotListener != nil {
+		if msg, ok := rawEvt.(*events.Message); ok {
+			go mycli.chatbotListener.OnMessage(mycli.Instance, msg)
+		}
 	}
 }
 

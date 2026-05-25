@@ -61,6 +61,10 @@ import (
 	minio_storage "github.com/EvolutionAPI/evolution-go/pkg/storage/minio"
 	user_handler "github.com/EvolutionAPI/evolution-go/pkg/user/handler"
 	user_service "github.com/EvolutionAPI/evolution-go/pkg/user/service"
+	webhook_handler "github.com/EvolutionAPI/evolution-go/pkg/webhook/handler"
+	webhook_model "github.com/EvolutionAPI/evolution-go/pkg/webhook/model"
+	webhook_repository "github.com/EvolutionAPI/evolution-go/pkg/webhook/repository"
+	webhook_service "github.com/EvolutionAPI/evolution-go/pkg/webhook/service"
 	whatsmeow_service "github.com/EvolutionAPI/evolution-go/pkg/whatsmeow/service"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -196,6 +200,30 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 	labelService := label_service.NewLabelService(clientPointer, whatsmeowService, labelRepository, loggerWrapper)
 	newsletterService := newsletter_service.NewNewsletterService(clientPointer, whatsmeowService, loggerWrapper)
 
+	webhookRepo := webhook_repository.NewWebhookRepository(db)
+	sessionManager := webhook_service.NewSessionManager()
+	sessionManager.StartCleanup(5 * time.Minute)
+
+	webhookSvc := webhook_service.NewWebhookService(webhookRepo, sessionManager)
+	dispatcher := webhook_service.NewDispatcher()
+
+	sendTextFunc := func(instanceId, remoteJid, text string) error {
+		inst, err := instanceService.Info(instanceId)
+		if err != nil {
+			return err
+		}
+		_, err = sendMessageService.SendText(&send_service.TextStruct{
+			Number: remoteJid,
+			Text:   text,
+		}, inst)
+		return err
+	}
+
+	chatbotListener := webhook_service.NewChatbotListener(webhookSvc, sessionManager, dispatcher, sendTextFunc, loggerWrapper)
+	whatsmeowService.SetChatbotListener(chatbotListener)
+
+	webhookHandler := webhook_handler.NewWebhookHandler(webhookSvc)
+
 	// NOVO: PollHandler usando PollService já inicializado no whatsmeowService (evita dupla inicialização)
 	pollHandler := poll_handler.NewPollHandler(whatsmeowService.GetPollService(), loggerWrapper)
 
@@ -234,6 +262,7 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 		newsletter_handler.NewNewsletterHandler(newsletterService),
 		pollHandler,
 		server_handler.NewServerHandler(),
+		webhookHandler,
 	).AssignRoutes(r)
 
 	if config.ConnectOnStartup {
@@ -257,7 +286,7 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 }
 
 func migrate(db *gorm.DB) {
-	err := db.AutoMigrate(&instance_model.Instance{}, &message_model.Message{}, &label_model.Label{})
+	err := db.AutoMigrate(&instance_model.Instance{}, &message_model.Message{}, &label_model.Label{}, &webhook_model.Webhook{})
 
 	if err != nil {
 		log.Fatal(err)
