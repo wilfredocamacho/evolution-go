@@ -99,7 +99,7 @@ type PairStruct struct {
 }
 
 type PairReturnStruct struct {
-	PairingCode string
+	PairingCode string `json:"pairingCode"`
 }
 
 type SetProxyStruct struct {
