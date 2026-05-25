@@ -96,18 +96,22 @@ export function CreateInstanceDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="token">
-              Token <span className="text-destructive">*</span>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="token">Token (opcional)</Label>
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+                onClick={() => setToken(crypto.randomUUID())}
+              >
+                Regenerar
+              </button>
+            </div>
             <Input
               id="token"
-              placeholder="mi-token-unico"
+              placeholder="Se genera automáticamente"
               value={token}
               onChange={(e) => setToken(e.target.value)}
             />
-            {errors.token && (
-              <p className="text-xs text-destructive">{errors.token}</p>
-            )}
           </div>
 
           <div className="space-y-2">
