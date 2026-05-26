@@ -17,3 +17,47 @@
 - Updated backend `index.md` to show all files populated
 - Marked PRD checklist complete
 
+
+
+## Session 1: Refinar conexión de instancia: QR, botones desconectar/cerrar
+
+**Date**: 2026-05-25
+**Task**: Refinar conexión de instancia: QR, botones desconectar/cerrar
+**Branch**: `main`
+
+### Summary
+
+Arreglar flujo conexión instancias: fix QR doble prefijo y polling con loggedIn, backend Disconnect ahora hace logout real con select timeout, frontend remueve botón Cerrar Sesión redundante, archivadas tareas fix-instance-connection y fix-pr-coderabbit
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `faa5852` | (see git log) |
+| `2b26251` | (see git log) |
+| `23ddb61` | (see git log) |
+| `bcd0d4b` | (see git log) |
+| `7b01eb2` | (see git log) |
+| `b82e3b4` | (see git log) |
+| `5af456e` | (see git log) |
+| `b32d5e9` | (see git log) |
+| `936db1e` | (see git log) |
+| `e8e92a4` | (see git log) |
+| `6a13d79` | (see git log) |
+| `0578243` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
