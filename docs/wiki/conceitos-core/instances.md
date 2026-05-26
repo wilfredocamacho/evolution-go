@@ -335,9 +335,12 @@ Resposta:
 **O que acontece**:
 1. Faz logout se estiver conectado
 2. Remove todas as mensagens dessa instância
-3. Remove todas as labels dessa instância
-4. **Deleta tudo do banco de dados**
-5. Operação irreversível!
+3. Remove todos os webhooks dessa instância
+4. Remove todas as labels dessa instância
+5. **Deleta tudo do banco de dados**
+6. Operação irreversível!
+
+> A deleção em cascata é garantida por **chaves estrangeiras (FK)** no banco de dados com `ON DELETE CASCADE`. As tabelas `messages`, `webhooks` e `labels` têm FK apontando para `instances.id`.
 
 **⚠️ ATENÇÃO**: Não tem como desfazer!
 

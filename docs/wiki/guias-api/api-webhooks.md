@@ -6,6 +6,14 @@
 
 O sistema de Webhooks Multi-Trigger substitui o webhook único por uma arquitetura flexível onde cada instância pode ter **N webhooks**, cada um com seu próprio **trigger** e **URL**. Quando uma mensagem coincide com um trigger, o webhook é disparado e uma **sessão** é criada para aquele número.
 
+### Relacionamento com Instâncias
+
+Cada webhook pertence a **exatamente uma instância**. O campo `instanceId` é uma **chave estrangeira (FK)** real que referencia `instances.id` com `ON DELETE CASCADE`:
+
+- Ao **deletar uma instância**, **todos os webhooks** daquela instância são automaticamente removidos do banco de dados
+- A constraint é gerenciada pelo GORM AutoMigrate e aplicada diretamente no PostgreSQL
+- A relação é bidirecional: webhooks podem ser consultados por `instanceId` e a instância pai nunca é serializada dentro do webhook (`json:"-"`)
+
 ### Fluxo Completo
 
 ```
@@ -229,8 +237,7 @@ Retorna todas as sessões ativas (e recém-fechadas) associadas à instância.
 
 | Status | Efeito |
 |--------|--------|
-| `closed` | Marca sessão como fechada. Próxima trigger match reabre |
-| `delete` | Remove sessão da memória completamente |
+| `closed` | Fecha a sessão e a remove da memória. Próxima trigger match cria nova sessão |
 
 **Response (200):**
 ```json
@@ -259,7 +266,7 @@ O Evolution GO Manager Web (painel administrativo em `/manager/`) oferece uma in
 - **Ativar/Desativar**: toggle para habilitar/desabilitar sem deletar
 - **Excluir webhook**: remove permanentemente
 - **Webhook confiável**: switch `isTrusted` para controlar envio de `apiKey`
-- **Sesiones**: botão que abre modal com sessões ativas, polling 5s, botões Cerrar/Eliminar por número
+- **Sesiones**: botão que abre modal com sessões ativas, polling 5s, botão Cerrar por número (fecha a sessão e a remove)
 
 ### Campos no Formulário
 

@@ -87,7 +87,8 @@ Todos os dados da **sua aplicação**:
 - **Instâncias** - Cada WhatsApp conectado
 - **Mensagens** - Histórico de mensagens enviadas
 - **Labels** - Etiquetas/marcações
-- **Configurações** - Webhooks, eventos, etc.
+- **Webhooks** - Webhooks multi-trigger com sessões e FK → instances
+- **Configurações** - Eventos, etc.
 
 ### Tabelas Principais
 
@@ -125,13 +126,32 @@ Todos os dados da **sua aplicação**:
 
 💡 **Dica**: Por padrão, não salvamos o conteúdo completo das mensagens por questão de espaço.
 
-#### 3. Tabela `labels`
+#### 3. Tabela `webhooks`
+
+**O que é**: Webhooks multi-trigger para chatbot com sessões em memória.
+
+**Informações guardadas**:
+- **id**: Identificador único (UUID)
+- **instance_id**: Chave estrangeira (FK) → `instances.id` com `ON DELETE CASCADE`
+- **webhook_url**: URL para onde enviar o POST (obrigatório)
+- **trigger_type**: Tipo de trigger (`all`, `keyword`, `advanced`)
+- **trigger_value**: Valor do trigger (palavra-chave, regex)
+- **trigger_operator**: Operador do trigger (`equals`, `contains`, `regex`, etc.)
+- **enabled**: Se está ativo (true/false)
+- **expire**: Timeout da sessão em segundos (default: 300)
+- **ignore_jids**: Lista de JIDs a ignorar (JSON)
+
+> A constraint FK com `ON DELETE CASCADE` garante que ao deletar uma instância, todos os seus webhooks são removidos automaticamente no banco de dados.
+
+**Documentação completa**: [Webhooks Multi-Trigger](../guias-api/api-webhooks.md)
+
+#### 4. Tabela `labels`
 
 **O que é**: Etiquetas/marcações do WhatsApp.
 
 **Informações guardadas**:
 - **id**: Identificador único
-- **instance_id**: De qual instância
+- **instance_id**: FK → `instances.id` (de qual instância)
 - **label_name**: Nome da etiqueta (ex: "Cliente VIP")
 - **label_color**: Cor da etiqueta (0-19)
 
@@ -142,27 +162,24 @@ Todos os dados da **sua aplicação**:
 ### Estrutura Visual
 
 ```
-┌──────────────┐
-│  instances   │  (Tabela Principal)
-│              │
-│ - id         │◄─────────┐
-│ - name       │          │
-│ - token      │          │  Relacionamento
-│ - connected  │          │
-└──────────────┘          │
-                       │
-           ┌──────────────┴──────────────┐
-           │                             │
-    ┌──────▼──────┐             ┌───────▼──────┐
-    │  messages   │             │   labels     │
-    │             │             │              │
-    │ - id        │             │ - id         │
-    │ - source ───┼─────┐       │ - instance_id│───┐
-    │   (FK)      │     │       │   (FK)       │   │
-    └─────────────┘     │       └──────────────┘   │
-                        │                           │
-                        └────── Aponta para ────────┘
-                              instances.id
+┌────────────────┐
+│   instances    │  (Tabela Principal)
+│                │
+│ - id           │◄──────────┐
+│ - name         │           │
+│ - token        │           │  Relacionamento
+│ - connected    │           │
+└────────────────┘           │
+                             │
+     ┌───────────────┬───────┴──────────┬───────────────┐
+     │               │                  │               │
+┌────▼─────┐  ┌──────▼──────┐   ┌───────▼──────┐      │
+│ messages  │  │  webhooks   │   │   labels     │      │
+│           │  │             │   │              │      │
+│ - id      │  │ - id        │   │ - id         │      │
+│ - source  │  │ - instance_id│  │ - instance_id│──────┘
+│   (FK)    │  │   (FK)      │   │   (FK)       │
+└───────────┘  └─────────────┘   └──────────────┘
 ```
 
 **FK = Foreign Key (Chave Estrangeira)**
@@ -171,11 +188,12 @@ Todos os dados da **sua aplicação**:
 
 ### Quando Deleta uma Instância
 
-Se você deletar uma instância, automaticamente deleta:
+Se você deletar uma instância, todas as tabelas com FK (`ON DELETE CASCADE`) são limpas automaticamente:
 - ✅ Todas as mensagens dessa instância
+- ✅ Todos os webhooks dessa instância
 - ✅ Todas as labels dessa instância
 
-Isso se chama **deleção em cascata** - como um efeito dominó!
+Isso se chama **deleção em cascata** - como um efeito dominó! A constraint é gerenciada pelo GORM AutoMigrate e aplicada diretamente no PostgreSQL.
 
 ---
 
@@ -372,7 +390,7 @@ ORDER BY pg_total_relation_size(tablename::text) DESC;
 │ • Chaves cripto        │         │ • Instâncias           │
 │ • Sessões              │         │ • Mensagens            │
 │ • Device info          │         │ • Labels               │
-│ • Contatos             │         │ • Webhooks             │
+│ • Contatos             │         │ • Webhooks (FK → instances)
 │                        │         │ • Configurações        │
 └────────────────────────┘         └────────────────────────┘
          ▲                                   ▲
@@ -399,6 +417,10 @@ ORDER BY pg_total_relation_size(tablename::text) DESC;
 7. Label criada
    ↓
 8. Salvo em: users → labels
+
+9. Webhook criado
+   ↓
+10. Salvo em: users → webhooks (com FK → instances.id)
 ```
 
 ---
