@@ -87,7 +87,7 @@ Referência completa de todos os endpoints disponíveis.
 | [**Chamadas**](./guias-api/api-call.md) | 1 | Rejeitar chamadas recebidas |
 | [**Comunidades**](./guias-api/api-community.md) | 3 | Criar e gerenciar comunidades |
 | [**Newsletters**](./guias-api/api-newsletter.md) | 6 | Canais do WhatsApp |
-| [**Webhooks**](./guias-api/api-webhooks.md) | 6 | Webhooks multi-trigger com sessões e chatbot |
+| [**Webhooks**](./guias-api/api-webhooks.md) | 7 | Webhooks multi-trigger com sessões e chatbot |
 
 ### 🚀 Recursos Avançados
 

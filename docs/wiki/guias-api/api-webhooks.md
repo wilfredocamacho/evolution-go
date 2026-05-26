@@ -189,6 +189,32 @@ Remove o webhook e **todas as sessões ativas** associadas a ele.
 }
 ```
 
+### Listar Sessões
+
+`GET /webhook/sessions/:instanceId` — Requer `GlobalApiKey`
+
+Retorna todas as sessões ativas (e recém-fechadas) associadas à instância.
+
+**Response (200):**
+```json
+{
+  "message": "success",
+  "data": [
+    {
+      "sessionId": "webhook-uuid:5511999999999@s.whatsapp.net",
+      "remoteJid": "5511999999999@s.whatsapp.net",
+      "pushName": "João",
+      "status": "opened",
+      "webhookId": "uuid-do-webhook",
+      "instanceId": "uuid-da-instancia",
+      "expire": 300,
+      "createdAt": "2026-05-25T18:30:00Z",
+      "lastActive": "2026-05-25T18:35:00Z"
+    }
+  ]
+}
+```
+
 ### Mudar Estado da Sessão
 
 `POST /webhook/change-status` — Requer `token da instância`
@@ -233,6 +259,7 @@ O Evolution GO Manager Web (painel administrativo em `/manager/`) oferece uma in
 - **Ativar/Desativar**: toggle para habilitar/desabilitar sem deletar
 - **Excluir webhook**: remove permanentemente
 - **Webhook confiável**: switch `isTrusted` para controlar envio de `apiKey`
+- **Sesiones**: botão que abre modal com sessões ativas, polling 5s, botões Cerrar/Eliminar por número
 
 ### Campos no Formulário
 
