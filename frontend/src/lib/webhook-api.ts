@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiDelete, extractData } from "./api-client"
 import type { ApiResponse } from "@/types/api"
-import type { Webhook, CreateWebhookPayload, WebhookSessionStatus, WebhookSession } from "@/types/webhook"
+import type { Webhook, CreateWebhookPayload, WebhookSessionStatus } from "@/types/webhook"
 
 export async function getWebhooks(instanceId: string): Promise<Webhook[]> {
   const res = await apiGet<ApiResponse<Webhook[]>>(
