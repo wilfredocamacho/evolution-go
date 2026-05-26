@@ -6,15 +6,15 @@ import (
 )
 
 type Session struct {
-	SessionID  string
-	RemoteJid  string
-	PushName   string
-	Status     string // opened, closed
-	WebhookID  string
-	InstanceID string
-	Expire     int
-	CreatedAt  time.Time
-	LastActive time.Time
+	SessionID  string    `json:"sessionId"`
+	RemoteJid  string    `json:"remoteJid"`
+	PushName   string    `json:"pushName"`
+	Status     string    `json:"status"` // opened, closed
+	WebhookID  string    `json:"webhookId"`
+	InstanceID string    `json:"instanceId"`
+	Expire     int       `json:"expire"`
+	CreatedAt  time.Time `json:"createdAt"`
+	LastActive time.Time `json:"lastActive"`
 }
 
 type SessionManager struct {
