@@ -1110,7 +1110,9 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 			if cleanedWhatsAppJID, err := types.ParseJID(cleanSenderAlt); err == nil {
 				evt.Info.Sender = cleanedWhatsAppJID
 				// Se Chat também é @lid, atualiza para @s.whatsapp.net
-				if strings.Contains(chatStr, "@lid") {
+				// Também atualiza se o User do Chat for o mesmo LID (mas com server @s.whatsapp.net)
+				userLID := strings.SplitN(cleanSender, "@", 2)[0]
+				if strings.Contains(chatStr, "@lid") || strings.HasPrefix(chatStr, userLID+"@") {
 					evt.Info.Chat = cleanedWhatsAppJID
 				}
 			}
