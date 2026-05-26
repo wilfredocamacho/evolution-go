@@ -82,15 +82,15 @@ type ConnectStruct struct {
 }
 
 type StatusStruct struct {
-	Connected bool
-	LoggedIn  bool
-	myJid     *types.JID
-	Name      string
+	Connected bool       `json:"connected"`
+	LoggedIn  bool       `json:"loggedIn"`
+	myJid     *types.JID `json:"-"`
+	Name      string     `json:"name"`
 }
 
 type QrcodeStruct struct {
-	Qrcode string
-	Code   string
+	Qrcode string `json:"qrcode"`
+	Code   string `json:"code"`
 }
 
 type PairStruct struct {
