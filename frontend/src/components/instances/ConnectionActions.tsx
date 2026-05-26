@@ -1,10 +1,8 @@
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import {
-  useConnectInstance,
   useDisconnectInstance,
   useReconnectInstance,
-
   useDeleteInstance,
 } from "@/hooks/useInstanceQuery"
 import { Button } from "@/components/ui/button"
@@ -17,7 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Wifi, WifiOff, Trash2, RotateCcw, Loader2 } from "lucide-react"
+import { WifiOff, Trash2, RotateCcw, Loader2 } from "lucide-react"
 import { useState } from "react"
 
 interface ConnectionActionsProps {
@@ -28,34 +26,17 @@ interface ConnectionActionsProps {
 export function ConnectionActions({ instanceId, connected }: ConnectionActionsProps) {
   const { apiKey } = useAuth()
   const navigate = useNavigate()
-  const connect = useConnectInstance()
   const disconnect = useDisconnectInstance()
   const reconnect = useReconnectInstance()
   const deleteInst = useDeleteInstance()
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const isPending =
-    connect.isPending || disconnect.isPending || reconnect.isPending || deleteInst.isPending
+    disconnect.isPending || reconnect.isPending || deleteInst.isPending
 
   return (
     <div className="flex flex-wrap gap-2">
-      {!connected ? (
-        <>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => connect.mutate({ id: instanceId })}
-            disabled={isPending}
-          >
-            {connect.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Wifi className="mr-2 h-4 w-4" />
-            )}
-            Conectar
-          </Button>
-        </>
-      ) : (
+      {connected ? (
         <>
           <Button
             variant="outline"
@@ -84,7 +65,7 @@ export function ConnectionActions({ instanceId, connected }: ConnectionActionsPr
             Reconectar
           </Button>
         </>
-      )}
+      ) : null}
 
       {apiKey && (
         <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
