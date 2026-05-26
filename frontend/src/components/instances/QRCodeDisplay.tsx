@@ -6,14 +6,14 @@ import { QrCode, RefreshCw, AlertCircle } from "lucide-react"
 
 interface QRCodeDisplayProps {
   instanceId: string
-  connected: boolean
+  loggedIn: boolean
 }
 
-export function QRCodeDisplay({ instanceId, connected }: QRCodeDisplayProps) {
-  const { data: qrData, isLoading, isError } = useInstanceQr(instanceId, !connected)
+export function QRCodeDisplay({ instanceId, loggedIn }: QRCodeDisplayProps) {
+  const { data: qrData, isLoading, isError } = useInstanceQr(instanceId, !loggedIn)
   const connect = useConnectInstance()
 
-  if (connected) {
+  if (loggedIn) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-8">
@@ -84,7 +84,7 @@ export function QRCodeDisplay({ instanceId, connected }: QRCodeDisplayProps) {
     <Card>
       <CardContent className="flex flex-col items-center gap-3 py-6">
         <img
-          src={`data:image/png;base64,${qrData.qrcode}`}
+          src={qrData.qrcode}
           alt="QR Code"
           className="h-52 w-52 rounded-lg border"
         />
