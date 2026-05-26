@@ -67,7 +67,8 @@ Uma vez com sessão aberta, **todas as mensagens seguintes** daquele número vã
 |--------|-----------|
 | `opened` | Sessão ativa. Mensagens vão direto ao webhook |
 | `closed` | Sessão fechada. Próxima trigger match cria nova sessão |
-| `paused` | Sessão pausada (via StopBotFromMe). Mensagens ignoradas |
+
+> `paused` foi removido. O campo `stopBotFromMe` agora usa `closed` como estado padrão.
 
 ### Fechamento Automático
 
@@ -214,6 +215,38 @@ Remove o webhook e **todas as sessões ativas** associadas a ele.
 
 ---
 
+## Gerenciamento via Frontend
+
+O Evolution GO Manager Web (painel administrativo em `/manager/`) oferece uma interface completa para gerenciar webhooks:
+
+### Acesso
+
+1. Faça login em `/manager/login` com sua **GlobalApiKey**
+2. Selecione uma instância no dashboard
+3. Aba **Webhook** no detalhe da instância
+
+### Funcionalidades da Interface
+
+- **Listar webhooks**: cards com descrição, URL, tipo de trigger e status
+- **Criar webhook**: formulário completo com todos os campos
+- **Editar webhook**: alterar URL, trigger, sessão e segurança
+- **Ativar/Desativar**: toggle para habilitar/desabilitar sem deletar
+- **Excluir webhook**: remove permanentemente
+- **Webhook confiável**: switch `isTrusted` para controlar envio de `apiKey`
+
+### Campos no Formulário
+
+| Seção | Campos |
+|-------|--------|
+| **URL** | URL do Webhook (obrigatório) |
+| **Trigger** | Tipo (all/keyword/advanced), Operador, Valor |
+| **Sessão** | Palavra para fechar sessão, Timeout (segundos) |
+| **Opções** | Habilitado, Escutar próprios, Pausar ao enviar, Confiável |
+| **Autenticação** | Basic Auth usuário e senha |
+| **Ignorar** | JIDs a ignorar (um por linha) |
+
+---
+
 ## Payload do Webhook
 
 Quando uma mensagem é disparada para o webhook, o payload enviado é:
@@ -229,6 +262,8 @@ Quando uma mensagem é disparada para o webhook, o payload enviado é:
   "apiKey": "token-da-instancia"
 }
 ```
+
+> **Atenção**: `apiKey` **só é enviado** quando o webhook tem o campo `isTrusted: true`. Para webhooks não confiáveis, o campo `apiKey` é omitido do payload por segurança.
 
 ### Resposta Esperada
 
@@ -303,7 +338,8 @@ curl -X POST https://seu-server.com/webhook/change-status \
 | `keywordFinish` | string | — | Palavra que fecha a sessão |
 | `expire` | int | `300` | Timeout da sessão em segundos (5 min) |
 | `listeningFromMe` | boolean | `false` | Responder a mensagens enviadas pelo próprio número |
-| `stopBotFromMe` | boolean | `false` | Pausar sessão quando o usuário envia mensagem |
+| `stopBotFromMe` | boolean | `false` | Fechar sessão quando o usuário envia mensagem |
+| `isTrusted` | boolean | `false` | Se `true`, inclui `apiKey` no payload do webhook |
 | `ignoreJids` | array | `[]` | Lista de JIDs a ignorar |
 
 ### Ignore JIDs
