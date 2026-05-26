@@ -405,13 +405,10 @@ func (i instances) Logout(instance *instance_model.Instance) (*instance_model.In
 }
 
 func (i instances) Status(instance *instance_model.Instance) (*StatusStruct, error) {
-	client, err := i.ensureClientConnected(instance.Id)
-	if err != nil {
-		return nil, err
-	}
+	client := i.clientPointer[instance.Id]
 
-	isConnected := client.IsConnected()
-	isLoggedIn := client.IsLoggedIn()
+	isConnected := client != nil && client.IsConnected()
+	isLoggedIn := client != nil && client.IsLoggedIn()
 
 	var myJid *types.JID
 	var name string
@@ -434,33 +431,12 @@ func (i instances) GetQr(instance *instance_model.Instance) (*QrcodeStruct, erro
 	logger := i.loggerWrapper.GetLogger(instance.Id)
 	client := i.clientPointer[instance.Id]
 
-	// Se não há cliente ou o cliente está logado, precisamos iniciar um novo cliente
-	if client == nil || client.IsLoggedIn() {
-		if client != nil && client.IsLoggedIn() {
-			logger.LogInfo("[%s] Client is logged in, starting new instance for QR code", instance.Id)
-		} else {
-			logger.LogInfo("[%s] No client found, starting new instance for QR code", instance.Id)
-		}
+	if client == nil {
+		return nil, fmt.Errorf("no active session. Connect first")
+	}
 
-		// Iniciar nova instância para gerar QR code
-		err := i.whatsmeowService.StartInstance(instance.Id)
-		if err != nil {
-			logger.LogError("[%s] Failed to start instance: %v", instance.Id, err)
-			return nil, fmt.Errorf("failed to start instance: %w", err)
-		}
-
-		// Aguardar um pouco para o cliente iniciar e gerar QR code
-		logger.LogInfo("[%s] Waiting for QR code generation...", instance.Id)
-		time.Sleep(3 * time.Second)
-
-		// Verificar novamente se há cliente
-		client = i.clientPointer[instance.Id]
-		if client != nil && client.IsLoggedIn() {
-			return nil, fmt.Errorf("session already logged in")
-		}
-	} else if !client.IsConnected() {
-		// Se o cliente existe mas não está conectado, pode estar aguardando QR code
-		logger.LogInfo("[%s] Client exists but not connected, checking for existing QR code", instance.Id)
+	if client.IsLoggedIn() {
+		return nil, fmt.Errorf("session already logged in")
 	}
 
 	// Buscar instância atualizada do banco para pegar o QR code mais recente

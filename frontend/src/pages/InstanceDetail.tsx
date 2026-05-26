@@ -62,6 +62,7 @@ export function InstanceDetail() {
   }
 
   const connected = status?.connected ?? instance.connected
+  const loggedIn = status?.loggedIn ?? false
 
   return (
     <div className="space-y-6">
@@ -80,15 +81,15 @@ export function InstanceDetail() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{instance.name}</h1>
               <Badge
-                variant={connected ? "success" : "outline"}
+                variant={loggedIn ? "success" : "outline"}
                 className="gap-1"
               >
-                {connected ? (
+                {loggedIn ? (
                   <Wifi className="h-3 w-3" />
                 ) : (
                   <WifiOff className="h-3 w-3" />
                 )}
-                {connected ? "Conectado" : "Desconectado"}
+                {loggedIn ? "Conectado" : "Desconectado"}
               </Badge>
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
@@ -138,18 +139,7 @@ export function InstanceDetail() {
                 </CardContent>
               </Card>
 
-              {!connected && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Vincular teléfono
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <PairPhoneForm instanceId={id!} />
-                  </CardContent>
-                </Card>
-              )}
+
             </div>
           </div>
 

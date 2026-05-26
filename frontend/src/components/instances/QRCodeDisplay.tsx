@@ -1,8 +1,10 @@
+import { useState } from "react"
 import { useInstanceQr, useConnectInstance } from "@/hooks/useInstanceQuery"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { QrCode, RefreshCw, AlertCircle } from "lucide-react"
+import { QrCode, Smartphone, RefreshCw, AlertCircle } from "lucide-react"
+import { PairPhoneForm } from "@/components/instances/PairPhoneForm"
 
 interface QRCodeDisplayProps {
   instanceId: string
@@ -10,7 +12,8 @@ interface QRCodeDisplayProps {
 }
 
 export function QRCodeDisplay({ instanceId, loggedIn }: QRCodeDisplayProps) {
-  const { data: qrData, isLoading, isError } = useInstanceQr(instanceId, !loggedIn)
+  const [mode, setMode] = useState<"idle" | "qr" | "pairing">("idle")
+  const { data: qrData, isLoading, isError } = useInstanceQr(instanceId, mode === "qr")
   const connect = useConnectInstance()
 
   if (loggedIn) {
@@ -21,6 +24,50 @@ export function QRCodeDisplay({ instanceId, loggedIn }: QRCodeDisplayProps) {
             <QrCode className="h-8 w-8 text-green-500" />
           </div>
           <p className="text-sm text-muted-foreground">Instancia conectada</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (mode === "pairing") {
+    return <PairPhoneForm instanceId={instanceId} />
+  }
+
+  if (mode === "idle") {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-4 py-8">
+          <div className="rounded-full bg-muted p-4">
+            <QrCode className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            Conecta tu WhatsApp para empezar a usar la instancia
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
+            <Button
+              className="flex-1"
+              onClick={() => {
+                connect.mutate({ id: instanceId })
+                setMode("qr")
+              }}
+              disabled={connect.isPending}
+            >
+              {connect.isPending ? (
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <QrCode className="mr-2 h-4 w-4" />
+              )}
+              Escanear QR
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setMode("pairing")}
+            >
+              <Smartphone className="mr-2 h-4 w-4" />
+              Código
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )
@@ -48,10 +95,13 @@ export function QRCodeDisplay({ instanceId, loggedIn }: QRCodeDisplayProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => connect.mutate({ id: instanceId })}
+            onClick={() => {
+              connect.mutate({ id: instanceId })
+              setMode("qr")
+            }}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Conectar
+            Reintentar
           </Button>
         </CardContent>
       </Card>
@@ -67,13 +117,16 @@ export function QRCodeDisplay({ instanceId, loggedIn }: QRCodeDisplayProps) {
           </div>
           <p className="text-sm text-muted-foreground">Esperando QR...</p>
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
-            onClick={() => connect.mutate({ id: instanceId })}
+            onClick={() => {
+              connect.mutate({ id: instanceId })
+              setMode("qr")
+            }}
             disabled={connect.isPending}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Conectar
+            Generar QR
           </Button>
         </CardContent>
       </Card>
@@ -89,13 +142,8 @@ export function QRCodeDisplay({ instanceId, loggedIn }: QRCodeDisplayProps) {
           className="h-52 w-52 rounded-lg border"
         />
         <p className="text-xs text-muted-foreground">
-          Escanea con WhatsApp. Se actualiza cada 2s.
+          Escanea con WhatsApp para conectar
         </p>
-        {qrData.code && (
-          <p className="font-mono text-xs text-muted-foreground">
-            Código: {qrData.code}
-          </p>
-        )}
       </CardContent>
     </Card>
   )
