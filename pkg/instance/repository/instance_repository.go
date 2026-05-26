@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	webhook_model "github.com/EvolutionAPI/evolution-go/pkg/webhook/model"
+
 	label_model "github.com/EvolutionAPI/evolution-go/pkg/label/model"
 	label_repository "github.com/EvolutionAPI/evolution-go/pkg/label/repository"
 
@@ -148,6 +150,11 @@ func (i *instanceRepository) GetAll(clientName string) ([]*instance_model.Instan
 
 func (i *instanceRepository) Delete(instanceId string) error {
 	return i.db.Transaction(func(tx *gorm.DB) error {
+		// Deleta todos os webhooks associados à instância
+		if err := tx.Where("instance_id = ?", instanceId).Delete(&webhook_model.Webhook{}).Error; err != nil {
+			return fmt.Errorf("erro ao deletar webhooks: %v", err)
+		}
+
 		// Deleta todas as labels associadas à instância
 		if err := tx.Where("instance_id = ?", instanceId).Delete(&label_model.Label{}).Error; err != nil {
 			return fmt.Errorf("erro ao deletar labels: %v", err)
