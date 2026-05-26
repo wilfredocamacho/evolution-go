@@ -4,7 +4,7 @@ import {
   useConnectInstance,
   useDisconnectInstance,
   useReconnectInstance,
-  useLogoutInstance,
+
   useDeleteInstance,
 } from "@/hooks/useInstanceQuery"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Wifi, WifiOff, LogOut, Trash2, RotateCcw, Loader2 } from "lucide-react"
+import { Wifi, WifiOff, Trash2, RotateCcw, Loader2 } from "lucide-react"
 import { useState } from "react"
 
 interface ConnectionActionsProps {
@@ -31,13 +31,11 @@ export function ConnectionActions({ instanceId, connected }: ConnectionActionsPr
   const connect = useConnectInstance()
   const disconnect = useDisconnectInstance()
   const reconnect = useReconnectInstance()
-  const logout = useLogoutInstance()
   const deleteInst = useDeleteInstance()
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [logoutOpen, setLogoutOpen] = useState(false)
 
   const isPending =
-    connect.isPending || disconnect.isPending || reconnect.isPending || logout.isPending || deleteInst.isPending
+    connect.isPending || disconnect.isPending || reconnect.isPending || deleteInst.isPending
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -85,38 +83,6 @@ export function ConnectionActions({ instanceId, connected }: ConnectionActionsPr
             )}
             Reconectar
           </Button>
-          <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-            <DialogTrigger asChild>
-              <Button variant="secondary" size="sm" disabled={isPending}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Cerrar Sesión
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Cerrar sesión</DialogTitle>
-                <DialogDescription>
-                  ¿Estás seguro? Se cerrará la sesión de WhatsApp en esta instancia.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setLogoutOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    logout.mutate(instanceId)
-                    setLogoutOpen(false)
-                  }}
-                  disabled={logout.isPending}
-                >
-                  {logout.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Cerrar sesión
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </>
       )}
 
@@ -142,9 +108,12 @@ export function ConnectionActions({ instanceId, connected }: ConnectionActionsPr
               <Button
                 variant="destructive"
                 onClick={() => {
-                  deleteInst.mutate(instanceId)
-                  setDeleteOpen(false)
-                  navigate("/")
+                  deleteInst.mutate(instanceId, {
+                    onSuccess: () => {
+                      setDeleteOpen(false)
+                      navigate("/")
+                    },
+                  })
                 }}
                 disabled={deleteInst.isPending}
               >

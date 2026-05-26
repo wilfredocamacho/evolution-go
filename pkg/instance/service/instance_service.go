@@ -306,20 +306,49 @@ func (i instances) Disconnect(instance *instance_model.Instance) (*instance_mode
 		return instance, err
 	}
 
-	if client.IsConnected() {
-		if client.IsLoggedIn() {
-			i.loggerWrapper.GetLogger(instance.Id).LogInfo("[%s] Disconnection successful", instance.Id)
-			i.killChannel[instance.Id] <- true
-
-			instance.Events = ""
-
-			err := i.instanceRepository.Update(instance)
-			if err != nil {
-				return instance, err
-			}
-
-			return instance, nil
+	if client.IsLoggedIn() && client.IsConnected() {
+		err := client.Logout(context.Background())
+		if err != nil {
+			return instance, err
 		}
+
+		instance.Connected = false
+		err = i.instanceRepository.Update(instance)
+		if err != nil {
+			return instance, err
+		}
+
+		select {
+		case i.killChannel[instance.Id] <- true:
+		case <-time.After(5 * time.Second):
+		}
+
+		delete(i.clientPointer, instance.Id)
+		delete(i.killChannel, instance.Id)
+
+		i.loggerWrapper.GetLogger(instance.Id).LogInfo("[%s] Disconnect with logout successful", instance.Id)
+		return instance, nil
+	}
+
+	if client.IsConnected() {
+		client.Disconnect()
+
+		select {
+		case i.killChannel[instance.Id] <- true:
+		case <-time.After(5 * time.Second):
+		}
+
+		delete(i.clientPointer, instance.Id)
+		delete(i.killChannel, instance.Id)
+
+		instance.Connected = false
+		err := i.instanceRepository.Update(instance)
+		if err != nil {
+			return instance, err
+		}
+
+		i.loggerWrapper.GetLogger(instance.Id).LogInfo("[%s] Disconnect successful (fallback)", instance.Id)
+		return instance, nil
 	}
 
 	i.loggerWrapper.GetLogger(instance.Id).LogWarn("[%s] Ignoring disconnect as it was not connected", instance.Id)
