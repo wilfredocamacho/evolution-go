@@ -108,9 +108,12 @@ export function ConnectionActions({ instanceId, connected }: ConnectionActionsPr
               <Button
                 variant="destructive"
                 onClick={() => {
-                  deleteInst.mutate(instanceId)
-                  setDeleteOpen(false)
-                  navigate("/")
+                  deleteInst.mutate(instanceId, {
+                    onSuccess: () => {
+                      setDeleteOpen(false)
+                      navigate("/")
+                    },
+                  })
                 }}
                 disabled={deleteInst.isPending}
               >
