@@ -69,27 +69,16 @@ func (sm *SessionManager) CloseSession(webhookID, remoteJid string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	key := webhookID + ":" + remoteJid
-	if s, exists := sm.sessions[key]; exists {
-		s.Status = "closed"
-	}
+	delete(sm.sessions, key)
 }
 
 func (sm *SessionManager) CloseSessionByRemoteJid(remoteJid string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	for _, s := range sm.sessions {
+	for k, s := range sm.sessions {
 		if s.RemoteJid == remoteJid {
-			s.Status = "closed"
+			delete(sm.sessions, k)
 		}
-	}
-}
-
-func (sm *SessionManager) PauseSession(webhookID, remoteJid string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	key := webhookID + ":" + remoteJid
-	if s, exists := sm.sessions[key]; exists {
-		s.Status = "closed"
 	}
 }
 
@@ -104,16 +93,6 @@ func (sm *SessionManager) ListByInstanceID(instanceID string) []*Session {
 		}
 	}
 	return result
-}
-
-func (sm *SessionManager) DeleteSession(remoteJid string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	for k, s := range sm.sessions {
-		if s.RemoteJid == remoteJid {
-			delete(sm.sessions, k)
-		}
-	}
 }
 
 func (sm *SessionManager) Touch(webhookID, remoteJid string) {
@@ -146,11 +125,6 @@ func (sm *SessionManager) StartCleanup(defaultExpire time.Duration) {
 			case <-ticker.C:
 				sm.mu.Lock()
 				for k, s := range sm.sessions {
-					if s.Status == "closed" {
-						delete(sm.sessions, k)
-						continue
-					}
-
 					expireDuration := defaultExpire
 					if s.Expire > 0 {
 						expireDuration = time.Duration(s.Expire) * time.Second

@@ -37,7 +37,7 @@ type UpdateWebhookDTO = CreateWebhookDTO
 
 type ChangeStatusDTO struct {
 	RemoteJid string `json:"remoteJid" binding:"required"`
-	Status    string `json:"status" binding:"required,oneof=closed delete"`
+	Status    string `json:"status" binding:"required,oneof=closed"`
 }
 
 func NewWebhookService(repo *webhook_repository.WebhookRepository, sessionManager *SessionManager) *WebhookService {
@@ -196,8 +196,6 @@ func (s *WebhookService) ListSessions(instanceID string) []*Session {
 func (s *WebhookService) ChangeStatus(instanceId, remoteJid, status string) error {
 	if status == "closed" {
 		s.sessions.CloseSessionByRemoteJid(remoteJid)
-	} else if status == "delete" {
-		s.sessions.DeleteSession(remoteJid)
 	} else {
 		return errors.New("invalid status")
 	}

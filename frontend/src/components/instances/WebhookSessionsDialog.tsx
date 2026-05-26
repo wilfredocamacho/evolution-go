@@ -43,18 +43,6 @@ export function WebhookSessionsDialog({ instanceId, open, onOpenChange }: Props)
     onError: (err: Error) => toast.error(err.message),
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (remoteJid: string) =>
-      webhookApi.changeSessionStatus(instanceId, {
-        remoteJid,
-        status: "delete",
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["webhook-sessions", instanceId] })
-      toast.success("Sesión eliminada")
-    },
-    onError: (err: Error) => toast.error(err.message),
-  })
 
   const formatTime = (t: string) => {
     const d = new Date(t)
@@ -146,15 +134,6 @@ export function WebhookSessionsDialog({ instanceId, open, onOpenChange }: Props)
                         Cerrar
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(s.remoteJid)}
-                      disabled={deleteMutation.isPending}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      Eliminar
-                    </Button>
                   </div>
                 </div>
               </div>
