@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { Plus, Pencil, Trash2, Globe, ExternalLink, Loader2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Globe, ExternalLink, Loader2, Clock } from "lucide-react"
 import { WebhookForm } from "./WebhookForm"
+import { WebhookSessionsDialog } from "./WebhookSessionsDialog"
 import { getWebhooks, createWebhook, updateWebhook, deleteWebhook } from "@/lib/webhook-api"
 import type { Webhook, CreateWebhookPayload } from "@/types/webhook"
 
@@ -20,6 +21,7 @@ export function WebhookConfig({ instanceId }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editingWebhook, setEditingWebhook] = useState<Webhook | null>(null)
+  const [sessionsOpen, setSessionsOpen] = useState(false)
 
   const fetchWebhooks = async () => {
     setLoading(true)
@@ -115,10 +117,16 @@ export function WebhookConfig({ instanceId }: Props) {
             {webhooks.length} webhook{webhooks.length !== 1 ? "s" : ""} configurado{webhooks.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Webhook
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>
+            <Clock className="mr-2 h-4 w-4" />
+            Sesiones
+          </Button>
+          <Button onClick={openCreate} size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Webhook
+          </Button>
+        </div>
       </div>
 
       {/* Webhook list */}
@@ -205,6 +213,13 @@ export function WebhookConfig({ instanceId }: Props) {
           ))}
         </div>
       )}
+
+      {/* Sessions dialog */}
+      <WebhookSessionsDialog
+        instanceId={instanceId}
+        open={sessionsOpen}
+        onOpenChange={setSessionsOpen}
+      />
 
       {/* Create/Edit dialog */}
       <WebhookForm

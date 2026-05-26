@@ -263,6 +263,7 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 			routes.GET("/fetch/:webhookId", r.webhookHandler.Fetch)
 			routes.PUT("/update/:webhookId", r.webhookHandler.Update)
 			routes.DELETE("/delete/:webhookId", r.webhookHandler.Delete)
+			routes.GET("/sessions/:instanceId", r.webhookHandler.ListSessions)
 		}
 	}
 	routes = eng.Group("/webhook")

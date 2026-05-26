@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiDelete, extractData } from "./api-client"
 import type { ApiResponse } from "@/types/api"
-import type { Webhook, CreateWebhookPayload, WebhookSessionStatus } from "@/types/webhook"
+import type { Webhook, CreateWebhookPayload, WebhookSession, WebhookSessionStatus } from "@/types/webhook"
 
 export async function getWebhooks(instanceId: string): Promise<Webhook[]> {
   const res = await apiGet<ApiResponse<Webhook[]>>(
@@ -40,6 +40,14 @@ export async function updateWebhook(
     { isAdmin: true }
   )
   return extractData(res)!
+}
+
+export async function listSessions(instanceId: string): Promise<WebhookSession[]> {
+  const res = await apiGet<ApiResponse<WebhookSession[]>>(
+    `/webhook/sessions/${instanceId}`,
+    { isAdmin: true }
+  )
+  return extractData(res) || []
 }
 
 export async function deleteWebhook(id: string): Promise<void> {

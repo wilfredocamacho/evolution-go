@@ -1,9 +1,13 @@
 export interface WebhookSession {
+  sessionId: string
   remoteJid: string
   pushName: string
   status: "opened" | "closed"
-  startedAt: string
-  updatedAt: string
+  webhookId: string
+  instanceId: string
+  expire: number
+  createdAt: string
+  lastActive: string
 }
 
 export interface WebhookPayload {

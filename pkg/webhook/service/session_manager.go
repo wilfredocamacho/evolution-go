@@ -93,6 +93,19 @@ func (sm *SessionManager) PauseSession(webhookID, remoteJid string) {
 	}
 }
 
+func (sm *SessionManager) ListByInstanceID(instanceID string) []*Session {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	var result []*Session
+	for _, s := range sm.sessions {
+		if s.InstanceID == instanceID {
+			cpy := *s
+			result = append(result, &cpy)
+		}
+	}
+	return result
+}
+
 func (sm *SessionManager) DeleteSession(remoteJid string) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()

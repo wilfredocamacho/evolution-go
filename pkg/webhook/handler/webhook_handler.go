@@ -15,6 +15,21 @@ func NewWebhookHandler(service *webhook_service.WebhookService) *WebhookHandler 
 	return &WebhookHandler{service: service}
 }
 
+func (h *WebhookHandler) ListSessions(ctx *gin.Context) {
+	instanceID := ctx.Param("instanceId")
+	if instanceID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "instanceId is required"})
+		return
+	}
+
+	sessions := h.service.ListSessions(instanceID)
+	if sessions == nil {
+		sessions = []*webhook_service.Session{}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "success", "data": sessions})
+}
+
 func (h *WebhookHandler) Create(ctx *gin.Context) {
 	instanceID := ctx.Param("instanceId")
 	if instanceID == "" {

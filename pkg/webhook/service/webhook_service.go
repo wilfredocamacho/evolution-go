@@ -189,6 +189,10 @@ func (s *WebhookService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
 
+func (s *WebhookService) ListSessions(instanceID string) []*Session {
+	return s.sessions.ListByInstanceID(instanceID)
+}
+
 func (s *WebhookService) ChangeStatus(instanceId, remoteJid, status string) error {
 	if status == "closed" {
 		s.sessions.CloseSessionByRemoteJid(remoteJid)
