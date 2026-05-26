@@ -26,7 +26,7 @@ export function InstanceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: instance, isLoading, isError } = useInstance(id!)
-  const { data: status } = useInstanceStatus(id!, true)
+  const { data: status } = useInstanceStatus(id!, !!instance?.token)
 
   if (isLoading) {
     return (
