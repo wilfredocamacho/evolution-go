@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
     clearInstanceTokenCache();
     setApiKeyState(null);
-    window.location.href = "/login";
+    window.location.href = "/manager/login";
   }, []);
 
   return (
