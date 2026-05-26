@@ -61,3 +61,40 @@ Arreglar flujo conexión instancias: fix QR doble prefijo y polling con loggedIn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Fix instance connection, AlwaysOnline PR, LID JID swap
+
+**Date**: 2026-05-25
+**Task**: Fix instance connection, AlwaysOnline PR, LID JID swap
+**Branch**: `main`
+
+### Summary
+
+Fix: PairPhone ensureClientConnected, remove Conectar from ConnectionActions, swap Chat JID for LID. Feat: merge AlwaysOnline PR #33. Docs: webhooks cascade delete.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ae96b5e` | (see git log) |
+| `8afb599` | (see git log) |
+| `af21ebe` | (see git log) |
+| `5f9edea` | (see git log) |
+| `7845d91` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
