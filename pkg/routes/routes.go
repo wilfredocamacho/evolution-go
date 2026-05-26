@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -65,11 +66,19 @@ func (r *Routes) AssignRoutes(eng *gin.Engine) {
 		c.Status(http.StatusNoContent)
 	})
 
-	// Rotas para o gerenciador React (sem autenticação)
-	eng.Static("/manager/assets", "./manager/dist/assets")
-
-	// Ajuste nas rotas do manager para suportar client-side routing do React
+	// Manager SPA: serve arquivos estáticos ou fallback index.html para client-side routing
 	eng.GET("/manager/*any", func(c *gin.Context) {
+		filePath := c.Param("any")
+		if filePath == "" || filePath == "/" {
+			c.File("manager/dist/index.html")
+			return
+		}
+		// Tenta servir arquivo estático primeiro, fallback SPA
+		fullPath := "manager/dist" + filePath
+		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+			c.File(fullPath)
+			return
+		}
 		c.File("manager/dist/index.html")
 	})
 
