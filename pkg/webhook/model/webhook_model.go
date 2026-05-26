@@ -6,11 +6,14 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
+
+	instance_model "github.com/EvolutionAPI/evolution-go/pkg/instance/model"
 )
 
 type Webhook struct {
-	ID              string         `gorm:"type:uuid;primaryKey" json:"id"`
-	InstanceID      string         `gorm:"index;not null" json:"instanceId"`
+	ID              string                `gorm:"type:uuid;primaryKey" json:"id"`
+	InstanceID      string                `gorm:"index;not null" json:"instanceId"`
+	Instance        instance_model.Instance `gorm:"foreignKey:InstanceID;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"-"`
 	Enabled         bool           `gorm:"default:true" json:"enabled"`
 	Description     string         `json:"description"`
 	WebhookURL      string         `gorm:"not null" json:"webhookUrl"`
