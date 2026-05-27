@@ -289,13 +289,21 @@ Quando uma mensagem é disparada para o webhook, o payload enviado é:
 {
   "chatInput": "Olá, preciso de ajuda",
   "sessionId": "5511999999999@s.whatsapp.net",
-  "remoteJid": "5511999999999@s.whatsapp.net",
+  "remoteJid": "1203630xxxxxxxxx@lid",
+  "senderPn": "5511999999999@s.whatsapp.net",
+  "senderLid": "1203630xxxxxxxxx@lid",
   "pushName": "João",
   "instanceName": "meu-whatsapp",
   "instanceId": "uuid-da-instancia",
   "apiKey": "token-da-instancia"
 }
 ```
+
+Campos de identidade:
+- `remoteJid`: destino da conversa/sessão (pode ser `@lid`)
+- `senderPn`: JID telefônico do remetente (`@s.whatsapp.net`) quando disponível
+- `senderLid`: JID LID do remetente (`@lid`) quando conversa usa LID
+- `senderPn` e `senderLid` são omitidos quando vazios (compatibilidade retroativa)
 
 > **Atenção**: `apiKey` **só é enviado** quando o webhook tem o campo `isTrusted: true`. Para webhooks não confiáveis, o campo `apiKey` é omitido do payload por segurança.
 
@@ -340,8 +348,7 @@ curl -X POST https://seu-server.com/webhook/create/instance-uuid \
 ```
 
 - **Webhook**: recebe o POST do evolution-go com o payload
-- **Parse Input**: extrai `chatInput`, `remoteJid`, `instanceName`, `apiKey`
-- **Responder**: retorna `{ "output": "resposta" }`
+- **Parse Input**: extrai `chatInput`, `remoteJid`, `instanceName`, `apiKey`, `senderPn`, `senderLid`- **Responder**: retorna `{ "output": "resposta" }`
 - O evolution-go reenvia a resposta ao WhatsApp automaticamente
 
 **3. Fechar sessão via API:**
