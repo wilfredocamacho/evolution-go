@@ -64,6 +64,16 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 		}
 	}
 
+	l.logger.GetLogger(instance.Id).LogInfo(
+		"[%s] chatbot identity extracted chat=%s sender=%s senderAlt=%s senderPn=%s senderLid=%s",
+		instance.Id,
+		chatJid,
+		senderJid,
+		senderAltJid,
+		senderPn,
+		senderLid,
+	)
+
 	webhooks, err := l.service.FindByInstanceAndEnabled(instance.Id)
 	if err != nil || len(webhooks) == 0 {
 		return
@@ -158,6 +168,16 @@ func (l *ChatbotListener) dispatchAndRespond(w *webhook_model.Webhook, instance 
 	if w.IsTrusted {
 		payload["apiKey"] = instance.Token
 	}
+
+	l.logger.GetLogger(instance.Id).LogInfo(
+		"[%s] chatbot dispatch payload webhook=%s remoteJid=%s senderPn=%v senderLid=%v sessionId=%s",
+		instance.Id,
+		w.ID,
+		remoteJid,
+		payload["senderPn"],
+		payload["senderLid"],
+		sessionID,
+	)
 
 	response, err := l.dispatcher.Dispatch(w, payload)
 	if err != nil {
