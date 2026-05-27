@@ -14,6 +14,7 @@ import (
 )
 
 type SendTextFunc func(instanceID, remoteJid, text string) error
+type ResolvePNFromLIDFunc func(instanceID, lidJID string) string
 
 // MessageListener interface for whatsmeow injection.
 type MessageListener interface {
@@ -21,20 +22,22 @@ type MessageListener interface {
 }
 
 type ChatbotListener struct {
-	service    *WebhookService
-	sessions   *SessionManager
-	dispatcher *Dispatcher
-	sendText   SendTextFunc
-	logger     *logger_wrapper.LoggerManager
+	service          *WebhookService
+	sessions         *SessionManager
+	dispatcher       *Dispatcher
+	sendText         SendTextFunc
+	resolvePNFromLID ResolvePNFromLIDFunc
+	logger           *logger_wrapper.LoggerManager
 }
 
-func NewChatbotListener(service *WebhookService, sessions *SessionManager, dispatcher *Dispatcher, sendText SendTextFunc, logger *logger_wrapper.LoggerManager) *ChatbotListener {
+func NewChatbotListener(service *WebhookService, sessions *SessionManager, dispatcher *Dispatcher, sendText SendTextFunc, resolvePNFromLID ResolvePNFromLIDFunc, logger *logger_wrapper.LoggerManager) *ChatbotListener {
 	return &ChatbotListener{
-		service:    service,
-		sessions:   sessions,
-		dispatcher: dispatcher,
-		sendText:   sendText,
-		logger:     logger,
+		service:          service,
+		sessions:         sessions,
+		dispatcher:       dispatcher,
+		sendText:         sendText,
+		resolvePNFromLID: resolvePNFromLID,
+		logger:           logger,
 	}
 }
 
@@ -71,6 +74,19 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 				senderLid = candidate
 				break
 			}
+		}
+	}
+
+	if senderPn == "" && senderLid != "" && l.resolvePNFromLID != nil {
+		if resolvedPn := l.resolvePNFromLID(instance.Id, senderLid); resolvedPn != "" {
+			senderPn = resolvedPn
+			l.logger.GetLogger(instance.Id).LogInfo(
+				"[%s] chatbot identity resolved from lid mapping senderLid=%s senderPn=%s",
+				instance.Id,
+				senderLid,
+				senderPn,
+			)
+			log.Printf("[CHATBOT_LID_RESOLVED] instance=%s senderLid=%s senderPn=%s", instance.Id, senderLid, senderPn)
 		}
 	}
 

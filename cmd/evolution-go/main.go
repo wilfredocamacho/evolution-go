@@ -18,6 +18,7 @@ import (
 	"github.com/gomessguii/logger"
 	"github.com/joho/godotenv"
 	"go.mau.fi/whatsmeow"
+	waTypes "go.mau.fi/whatsmeow/types"
 	"gorm.io/gorm"
 	_ "modernc.org/sqlite"
 
@@ -219,7 +220,25 @@ func setupRouter(db *gorm.DB, authDB *sql.DB, sqliteDB *sql.DB, config *config.C
 		return err
 	}
 
-	chatbotListener := webhook_service.NewChatbotListener(webhookSvc, sessionManager, dispatcher, sendTextFunc, loggerWrapper)
+	resolvePNFromLID := func(instanceId, lidJID string) string {
+		client, ok := clientPointer[instanceId]
+		if !ok || client == nil || client.Store == nil || client.Store.LIDs == nil {
+			return ""
+		}
+
+		lid, err := waTypes.ParseJID(lidJID)
+		if err != nil {
+			return ""
+		}
+
+		pn, err := client.Store.LIDs.GetPNForLID(context.Background(), lid)
+		if err != nil || pn.IsEmpty() {
+			return ""
+		}
+		return pn.String()
+	}
+
+	chatbotListener := webhook_service.NewChatbotListener(webhookSvc, sessionManager, dispatcher, sendTextFunc, resolvePNFromLID, loggerWrapper)
 	whatsmeowService.SetChatbotListener(chatbotListener)
 
 	webhookHandler := webhook_handler.NewWebhookHandler(webhookSvc)
