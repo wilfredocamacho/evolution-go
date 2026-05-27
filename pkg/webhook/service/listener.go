@@ -2,6 +2,7 @@ package webhook_service
 
 import (
 	"encoding/json"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
@@ -64,6 +65,28 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 		}
 	}
 
+	if senderLid == "" {
+		for _, candidate := range []string{chatJid, senderJid, senderAltJid} {
+			if strings.HasSuffix(candidate, "@lid") {
+				senderLid = candidate
+				break
+			}
+		}
+	}
+
+	if senderPn == "" {
+		l.logger.GetLogger(instance.Id).LogWarn(
+			"[%s] chatbot dispatch skipped: phone JID not resolvable chat=%s sender=%s senderAlt=%s senderLid=%s",
+			instance.Id,
+			chatJid,
+			senderJid,
+			senderAltJid,
+			senderLid,
+		)
+		log.Printf("[CHATBOT_DISPATCH_SKIPPED] instance=%s reason=no_sender_pn chat=%s sender=%s senderAlt=%s senderLid=%s", instance.Id, chatJid, senderJid, senderAltJid, senderLid)
+		return
+	}
+
 	l.logger.GetLogger(instance.Id).LogInfo(
 		"[%s] chatbot identity extracted chat=%s sender=%s senderAlt=%s senderPn=%s senderLid=%s",
 		instance.Id,
@@ -73,6 +96,7 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 		senderPn,
 		senderLid,
 	)
+	log.Printf("[CHATBOT_IDENTITY] instance=%s chat=%s sender=%s senderAlt=%s senderPn=%s senderLid=%s", instance.Id, chatJid, senderJid, senderAltJid, senderPn, senderLid)
 
 	webhooks, err := l.service.FindByInstanceAndEnabled(instance.Id)
 	if err != nil || len(webhooks) == 0 {
@@ -178,6 +202,7 @@ func (l *ChatbotListener) dispatchAndRespond(w *webhook_model.Webhook, instance 
 		payload["senderLid"],
 		sessionID,
 	)
+	log.Printf("[CHATBOT_DISPATCH] instance=%s webhook=%s remoteJid=%s senderPn=%v senderLid=%v sessionId=%s", instance.Id, w.ID, remoteJid, payload["senderPn"], payload["senderLid"], sessionID)
 
 	response, err := l.dispatcher.Dispatch(w, payload)
 	if err != nil {
