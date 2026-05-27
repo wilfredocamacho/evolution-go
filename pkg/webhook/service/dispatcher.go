@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/EvolutionAPI/evolution-go/pkg/webhook/model"
@@ -51,6 +52,13 @@ func (d *Dispatcher) Dispatch(webhook *webhook_model.Webhook, payload map[string
 		if len(snippet) > 200 {
 			snippet = snippet[:200]
 		}
+
+		if resp.StatusCode == http.StatusInternalServerError && strings.Contains(snippet, "No item to return was found") {
+			// n8n webhook in production mode can return this when no branch emits items.
+			// Treat as "no chatbot reply" instead of hard failure.
+			return "", nil
+		}
+
 		return "", fmt.Errorf("webhook returned status %d: %s", resp.StatusCode, snippet)
 	}
 
