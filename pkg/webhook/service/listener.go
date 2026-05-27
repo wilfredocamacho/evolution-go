@@ -46,20 +46,22 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 	content := extractTextContent(msg)
 	fromMe := msg.Info.IsFromMe
 
-	// Extract LID/JID resolution fields from the message event.
-	// senderPn is the phone JID (@s.whatsapp.net) when the sender's
-	// server is a phone number JID. senderLid is the remoteJid itself
-	// when the chat uses @lid.
-	chatServer := msg.Info.Chat.Server
-	senderServer := msg.Info.Sender.Server
+	// Extract LID/JID resolution fields from message event.
+	// Phone JID is source of truth when available.
+	chatJid := msg.Info.Chat.String()
+	senderJid := msg.Info.Sender.String()
+	senderAltJid := msg.Info.SenderAlt.String()
+
 	var senderPn, senderLid string
-	if chatServer == "lid" {
-		senderLid = remoteJid
-		if senderServer == "s.whatsapp.net" {
-			senderPn = msg.Info.Sender.String()
+	if strings.HasSuffix(chatJid, "@lid") {
+		senderLid = chatJid
+	}
+
+	for _, candidate := range []string{senderJid, senderAltJid, chatJid} {
+		if strings.HasSuffix(candidate, "@s.whatsapp.net") || strings.HasSuffix(candidate, "@c.us") {
+			senderPn = candidate
+			break
 		}
-	} else {
-		senderPn = remoteJid
 	}
 
 	webhooks, err := l.service.FindByInstanceAndEnabled(instance.Id)
