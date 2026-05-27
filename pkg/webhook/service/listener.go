@@ -46,6 +46,22 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 	content := extractTextContent(msg)
 	fromMe := msg.Info.IsFromMe
 
+	// Extract LID/JID resolution fields from the message event.
+	// senderPn is the phone JID (@s.whatsapp.net) when the sender's
+	// server is a phone number JID. senderLid is the remoteJid itself
+	// when the chat uses @lid.
+	chatServer := msg.Info.Chat.Server
+	senderServer := msg.Info.Sender.Server
+	var senderPn, senderLid string
+	if chatServer == "lid" {
+		senderLid = remoteJid
+		if senderServer == "s.whatsapp.net" {
+			senderPn = msg.Info.Sender.String()
+		}
+	} else {
+		senderPn = remoteJid
+	}
+
 	webhooks, err := l.service.FindByInstanceAndEnabled(instance.Id)
 	if err != nil || len(webhooks) == 0 {
 		return
@@ -71,14 +87,14 @@ func (l *ChatbotListener) OnMessage(instance *instance_model.Instance, msg *even
 		wg.Add(1)
 		go func(wh webhook_model.Webhook) {
 			defer wg.Done()
-			l.processWebhook(wh, instance, remoteJid, pushName, content, fromMe)
+			l.processWebhook(wh, instance, remoteJid, pushName, content, fromMe, senderPn, senderLid)
 		}(w)
 	}
 
 	wg.Wait()
 }
 
-func (l *ChatbotListener) processWebhook(w webhook_model.Webhook, instance *instance_model.Instance, remoteJid, pushName, content string, fromMe bool) {
+func (l *ChatbotListener) processWebhook(w webhook_model.Webhook, instance *instance_model.Instance, remoteJid, pushName, content string, fromMe bool, senderPn, senderLid string) {
 	session := l.sessions.Get(w.ID, remoteJid)
 
 	if session != nil && session.Status == "opened" {
@@ -96,7 +112,7 @@ func (l *ChatbotListener) processWebhook(w webhook_model.Webhook, instance *inst
 			return
 		}
 
-		l.dispatchAndRespond(&w, instance, remoteJid, pushName, content, session.SessionID)
+		l.dispatchAndRespond(&w, instance, remoteJid, pushName, content, session.SessionID, senderPn, senderLid)
 		return
 	}
 
@@ -112,11 +128,11 @@ func (l *ChatbotListener) processWebhook(w webhook_model.Webhook, instance *inst
 			return
 		}
 
-		l.dispatchAndRespond(&w, instance, remoteJid, pushName, content, s.SessionID)
+		l.dispatchAndRespond(&w, instance, remoteJid, pushName, content, s.SessionID, senderPn, senderLid)
 	}
 }
 
-func (l *ChatbotListener) dispatchAndRespond(w *webhook_model.Webhook, instance *instance_model.Instance, remoteJid, pushName, content, sessionID string) {
+func (l *ChatbotListener) dispatchAndRespond(w *webhook_model.Webhook, instance *instance_model.Instance, remoteJid, pushName, content, sessionID string, senderPn, senderLid string) {
 	payload := map[string]interface{}{
 		"chatInput":    content,
 		"sessionId":    sessionID,
@@ -124,6 +140,17 @@ func (l *ChatbotListener) dispatchAndRespond(w *webhook_model.Webhook, instance 
 		"pushName":     pushName,
 		"instanceName": instance.Name,
 		"instanceId":   instance.Id,
+	}
+
+	// LID/JID resolution fields for downstream identity resolution.
+	// senderPn is the phone JID (@s.whatsapp.net) when available.
+	// senderLid is the LID JID (@lid) when the chat uses LID.
+	// Omit empty values for backward compatibility.
+	if senderPn != "" {
+		payload["senderPn"] = senderPn
+	}
+	if senderLid != "" {
+		payload["senderLid"] = senderLid
 	}
 
 	if w.IsTrusted {
